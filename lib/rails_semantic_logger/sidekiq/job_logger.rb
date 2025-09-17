@@ -10,13 +10,6 @@ module RailsSemanticLogger
         logger = klass ? SemanticLogger[klass] : Sidekiq.logger
 
         SemanticLogger.tagged(queue: queue) do
-          # Latency is the time between when the job was enqueued and when it started executing.
-          logger.info(
-            "Start #perform",
-            metric:        "sidekiq.queue.latency",
-            metric_amount: job_latency_ms(item)
-          )
-
           # Measure the duration of running the job
           logger.measure_info(
             "Completed #perform",
@@ -47,12 +40,6 @@ module RailsSemanticLogger
         h[:tags]  = job_hash["tags"] if job_hash["tags"]
         h[:queue] = job_hash["queue"] if job_hash["queue"]
         h
-      end
-
-      def job_latency_ms(job)
-        return unless job && job["enqueued_at"]
-
-        (Time.now.to_f - job["enqueued_at"].to_f) * 1000
       end
     end
   end
