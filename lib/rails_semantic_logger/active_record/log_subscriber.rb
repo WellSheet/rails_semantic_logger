@@ -7,22 +7,7 @@ module RailsSemanticLogger
         attr_reader :logger
       end
 
-      def self.runtime=(value)
-        ::ActiveRecord::RuntimeRegistry.sql_runtime = value
-      end
-
-      def self.runtime
-        ::ActiveRecord::RuntimeRegistry.sql_runtime ||= 0
-      end
-
-      def self.reset_runtime
-        rt           = runtime
-        self.runtime = 0
-        rt
-      end
-
       def sql(event)
-        self.class.runtime += event.duration
         return unless logger.debug?
 
         payload = event.payload

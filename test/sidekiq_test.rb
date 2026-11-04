@@ -51,27 +51,18 @@ class SidekiqTest < Minitest::Test
           processor.send(:process, uow)
         end
 
-        assert_equal 2, messages.count, -> { messages.collect(&:to_h).ai }
+        # This fork drops the "Start #perform" line to cut log volume.
+        assert_equal 1, messages.count, -> { messages.collect(&:to_h).ai }
 
         assert_semantic_logger_event(
           messages[0],
-          level:      :info,
-          name:       "SimpleJob",
-          message:    "Start #perform",
-          metric:     "sidekiq.queue.latency",
-          named_tags: {jid: nil, queue: "default"}
-        )
-        assert messages[0].metric_amount.is_a?(Float)
-
-        assert_semantic_logger_event(
-          messages[1],
           level:      :info,
           name:       "SimpleJob",
           message:    "Completed #perform",
           metric:     "sidekiq.job.perform",
           named_tags: {jid: nil, queue: "default"}
         )
-        assert messages[1].duration.is_a?(Float)
+        assert messages[0].duration.is_a?(Float)
       end
 
       describe "with Bad Job" do
@@ -85,21 +76,10 @@ class SidekiqTest < Minitest::Test
             end
           end
 
-          assert_equal 3, messages.count, -> { messages.collect(&:to_h).ai }
+          assert_equal 2, messages.count, -> { messages.collect(&:to_h).ai }
 
           assert_semantic_logger_event(
             messages[0],
-            level:      :info,
-            name:       "BadJob",
-            message:    "Start #perform",
-            metric:     "sidekiq.queue.latency",
-            named_tags: {jid: nil, queue: "default"},
-            exception:  :nil
-          )
-          assert messages[0].metric_amount.is_a?(Float)
-
-          assert_semantic_logger_event(
-            messages[1],
             level:      :error,
             name:       "BadJob",
             message:    "Completed #perform",
@@ -107,18 +87,18 @@ class SidekiqTest < Minitest::Test
             named_tags: {jid: nil, queue: "default"},
             exception:  ArgumentError
           )
-          assert messages[1].duration.is_a?(Float)
+          assert messages[0].duration.is_a?(Float)
 
           assert_semantic_logger_event(
-            messages[2],
+            messages[1],
             level:            :warn,
             name:             "BadJob",
             message:          "Job raised exception",
             payload_includes: {context: "Job raised exception"},
             exception:        :nil
           )
-          assert_equal messages[2].payload[:job]["class"], "BadJob"
-          assert_equal messages[2].payload[:job]["args"], []
+          assert_equal messages[1].payload[:job]["class"], "BadJob"
+          assert_equal messages[1].payload[:job]["args"], []
         end
       end
     end
